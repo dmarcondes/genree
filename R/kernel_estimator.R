@@ -45,7 +45,7 @@ kernel_estimator <- function(X,method = "chi",S = NULL,S0 = NULL,mc_sample = 100
     while(max(c(0,mean_dist) - delta_bar) < 0){
       r <- r + 1
       sigma <- r*grid_delta
-      sample_dist <- unlist(lapply(as.list(1:mc_sample),function(i) min(mahalanobis(x = X,center = mvrnorm(n = 1,mu = X[sample(1:n,1),],Sigma = sigma*S),cov = S))))
+      sample_dist <- unlist(lapply(as.list(1:mc_sample),function(i) min(sqrt(mahalanobis(x = X,center = mvrnorm(n = 1,mu = X[sample(1:n,1),],Sigma = sigma*S),cov = S)))))
       mean_dist <- c(mean_dist,mean(sample_dist))
     }
     w <- which(abs(mean_dist - delta_bar) == min(abs(mean_dist - delta_bar)))
