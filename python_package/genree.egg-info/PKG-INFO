@@ -1,0 +1,17 @@
+Metadata-Version: 2.1
+Name: genree
+Version: 0.0.1
+Summary: Compute Generalized Error Estimators in JAX
+Home-page: UNKNOWN
+Author: Diego Marcondes
+Author-email: <dmarcondes@ime.usp.br>
+License: UNKNOWN
+Keywords: python,JAX,error estimation
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Researchers
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: Linux :: Ubuntu
+
+Compute Generalized Error Estimators in JAX
+
