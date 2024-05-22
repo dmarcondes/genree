@@ -127,9 +127,9 @@ def kernel_estimator(x,key,method = "chi",S = None,S0 = None,mc_sample = 100,ec 
             print("Grid for method of moments is too small!")
             return 0
 
-    return jnp.tile(sigma*S,(n,1,1))
+        return jnp.tile(sigma*S,(n,1,1))
     #Compute the kernel via maximum pseudolikelihood
-    elif(method == "mpe"):
+    elif method == "mpe":
         #Initialize S
         if S0 is None:
             S0 = jnp.tile(jnp.diag(jnp.array([1] * d),0),(n,1,1))
