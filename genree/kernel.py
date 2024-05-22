@@ -94,7 +94,7 @@ def kernel_estimator(x,key,method = "chi",S = None,S0 = None,mc_sample = 100,ec 
         delta_bar = jnp.mean(jnp.min(dist_mahalanobis(x,S) + jnp.diag(jnp.array([jnp.inf]*n),0),1))
 
         #Compute expectation of chi random variable
-        dom = jnp.linspace(0,10*d,round(10*d/0.001))
+        dom = jnp.linspace(0,10*d,round(10*d/0.001))[1:]
         int_chi = jax.scipy.integrate.trapezoid(jnp.sqrt(dom)*jax.scipy.stats.chi2.pdf(dom,d),dom)
 
         #Compute sigma
@@ -127,7 +127,7 @@ def kernel_estimator(x,key,method = "chi",S = None,S0 = None,mc_sample = 100,ec 
             print("Grid for method of moments is too small!")
             return 0
 
-        return jnp.tile(sigma*S,(n,1,1))
+    return jnp.tile(sigma*S,(n,1,1))
     #Compute the kernel via maximum pseudolikelihood
     elif(method == "mpe"):
         #Initialize S
@@ -158,4 +158,4 @@ def kernel_estimator(x,key,method = "chi",S = None,S0 = None,mc_sample = 100,ec 
             if trace:
                 print("t = " + str(t) + " step size = " + str(round(dif,8)) + "\n")
 
-        return S
+    return S
