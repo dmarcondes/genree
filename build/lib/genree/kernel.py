@@ -181,7 +181,7 @@ def kernel_estimator(x,key,method = "chi",S = None,S0 = None,bias = None,psi = N
         H = jax.vmap(lambda x: jax.hessian(lf)(x.reshape((1,x.shape[0]))))(x)
 
         #Compute kernel
-        S = 2 * bias * 1/d2l * (1/(x.shape[1] ** 2))
+        S = 2 * bias * 1/H * (1/(x.shape[1] ** 2))
 
         #Nearest pd
         S = jax.vmap(nearest_d)(k)
