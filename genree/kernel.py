@@ -184,6 +184,6 @@ def kernel_estimator(x,key,method = "chi",S = None,S0 = None,bias = None,psi = N
         S = 2 * bias * 1/H * (1/(x.shape[1] ** 2))
 
         #Nearest pd
-        S = jax.vmap(nearest_pd)(H)
+        S = jax.vmap(nearest_pd)(S)
 
         return S
