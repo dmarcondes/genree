@@ -3,6 +3,20 @@ import jax
 from jax import numpy as jnp
 from jax import random
 from jax import jit
+from jax.scipy.linalg import eigh
+from genree import bolsterinh as gb
+
+#Approximate by a posiitve definite matrix
+def nearest_psd(A,e = 1e-8):
+  #Compute the eigenvalues and eigenvectors of A
+  eigvals, eigvecs = eigh(A)
+
+  #Set the negative eigenvalues to small positive values
+  eigvals = jax.nn.relu(eigvals) + e
+
+  #Reconstruct the matrix from the eigenvalues and eigenvectors
+  return jnp.dot(eigvecs, jnp.dot(jnp.diag(eigvals), eigvecs.T))
+
 
 #Mahalanobis distance matrix
 @jit
@@ -51,7 +65,7 @@ def sample_dist(x,sigma,S,mc_sample,key):
     keys = jax.random.randint(key,(mc_sample + 1,),0,1e9)
 
     #Sample means (distribution of mixture that generated the point)
-    mean_index = jnp.array(jax.random.randint(random.PRNGKey(keys[0]),(mc_sample,),0,n),dtype = jnp.uint32)
+    mean_index =
 
     #Sample points
     sample = lambda i: jax.random.multivariate_normal(random.PRNGKey(keys[i + 1]), x[mean_index[i],:], sigma*S, shape = (1,)).reshape((1,d))
@@ -76,7 +90,7 @@ def m_step(i,x,W,n):
     return Snext
 
 #Estimate the kernel
-def kernel_estimator(x,key,method = "chi",S = None,S0 = None,mc_sample = 100,ec = 1e-6,grid_delta = 0.001,lamb = 1,trace = False):
+def kernel_estimator(x,key,method = "chi",S = None,S0 = None,bias = None,psi = None,mc_sample = 100,ec = 1e-6,grid_delta = 0.001,lamb = 1,trace = False,loss = gb.quad_loss):
     #Assure data is jax.Array
     x = jnp.array(x)
 
@@ -157,5 +171,19 @@ def kernel_estimator(x,key,method = "chi",S = None,S0 = None,mc_sample = 100,ec 
             t = t + 1
             if trace:
                 print("t = " + str(t) + " step size = " + str(round(dif,8)) + "\n")
+        return S
+    elif method == 'hessian':
+        #Loss function
+        def lf(xy):
+            return loss(psi(xy[:,0:-1]),xy[:,-1])
 
-    return S
+        #Hessian
+        H = jax.vmap(lambda x: jax.hessian(l)(x.reshape((1,x.shape[0]))))(x)
+
+        #Compute kernel
+        S = 2 * bias * 1/d2l * (1/(x.shape[1] ** 2))
+
+        #Nearest pd
+        S = jax.vmap(nearest_d)(k)
+
+        return S
