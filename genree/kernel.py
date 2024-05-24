@@ -7,7 +7,7 @@ from jax.scipy.linalg import eigh
 from genree import bolstering as gb
 
 #Approximate by a posiitve definite matrix
-def nearest_psd(A,e = 1e-8):
+def nearest_pd(A,e = 1e-8):
   #Compute the eigenvalues and eigenvectors of A
   eigvals, eigvecs = eigh(A)
 
@@ -184,6 +184,6 @@ def kernel_estimator(x,key,method = "chi",S = None,S0 = None,bias = None,psi = N
         S = 2 * bias * 1/H * (1/(x.shape[1] ** 2))
 
         #Nearest pd
-        S = jax.vmap(nearest_d)(k)
+        S = jax.vmap(nearest_pd)(k)
 
         return S
