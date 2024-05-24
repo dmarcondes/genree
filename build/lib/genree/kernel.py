@@ -4,7 +4,7 @@ from jax import numpy as jnp
 from jax import random
 from jax import jit
 from jax.scipy.linalg import eigh
-from genree import bolsterinh as gb
+from genree import bolstering as gb
 
 #Approximate by a posiitve definite matrix
 def nearest_psd(A,e = 1e-8):
