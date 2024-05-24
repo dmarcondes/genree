@@ -178,7 +178,7 @@ def kernel_estimator(x,key,method = "chi",S = None,S0 = None,bias = None,psi = N
             return loss(psi(xy[:,0:-1]),xy[:,-1])
 
         #Hessian
-        H = jax.vmap(lambda x: jax.hessian(l)(x.reshape((1,x.shape[0]))))(x)
+        H = jax.vmap(lambda x: jax.hessian(lf)(x.reshape((1,x.shape[0]))))(x)
 
         #Compute kernel
         S = 2 * bias * 1/d2l * (1/(x.shape[1] ** 2))
