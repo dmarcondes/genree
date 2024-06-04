@@ -68,7 +68,7 @@ def sample_dist(x,sigma,S,mc_sample,key):
     mean_index = jnp.array(jax.random.randint(random.PRNGKey(keys[0]),(mc_sample,),0,n),dtype = jnp.uint32)
 
     #Sample points
-    sample = lambda i: jax.random.multivariate_normal(random.PRNGKey(keys[i + 1]), x[dex[i],:], sigma*S, shape = (1,)).reshape((1,d))
+    sample = lambda i: jax.random.multivariate_normal(random.PRNGKey(keys[i + 1]), x[index[i],:], sigma*S, shape = (1,)).reshape((1,d))
     sample = jax.vmap(sample)(jnp.array(range(mc_sample)).reshape((mc_sample,))).reshape((mc_sample,d))
 
     #Compute distances
