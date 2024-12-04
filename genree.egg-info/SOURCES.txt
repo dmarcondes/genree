@@ -1,3 +1,4 @@
+README.md
 setup.py
 genree/__init__.py
 genree/bolstering.py

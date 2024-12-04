@@ -8,95 +8,285 @@ from genree import bolstering as gb
 
 #Approximate by a posiitve definite matrix
 def nearest_pd(A,e = 1e-8):
-  #Compute the eigenvalues and eigenvectors of A
-  eigvals, eigvecs = eigh(A)
+    """
+    Approximate by a positive definite matrix
+    -------
+    Parameters
+    ----------
+    A : jax.numpy.array
 
-  #Set the negative eigenvalues to small positive values
-  eigvals = jax.nn.relu(eigvals) + e
+        Matrix
 
-  #Reconstruct the matrix from the eigenvalues and eigenvectors
-  return jnp.dot(eigvecs, jnp.dot(jnp.diag(eigvals), eigvecs.T))
+    e : float
+
+        Value to substitute for negative eigenvalues
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    #Compute the eigenvalues and eigenvectors of A
+    eigvals, eigvecs = eigh(A)
+
+    #Set the negative eigenvalues to small positive values
+    eigvals = jax.nn.relu(eigvals) + e
+
+    #Reconstruct the matrix from the eigenvalues and eigenvectors
+    return jnp.dot(eigvecs, jnp.dot(jnp.diag(eigvals), eigvecs.T))
 
 
 #Mahalanobis distance matrix
 @jit
-def dist_mahalanobis(x,S = None):
-    #Assure data is matrix
-    x = jnp.array(x)
+def dist_mahalanobis(data,S = None):
+    """
+    Mahalanobis distance
+    -------
+    Parameters
+    ----------
+    data : jax.numpy.array
 
+        Data
+
+    S : jax.numpy.array
+
+        Covariance matrix
+
+    Returns
+    -------
+    jax.numpy.array
+    """
     #Sample size and number of variables
-    n = x.shape[0]
-    d = x.shape[1]
+    n = data.shape[0]
+    d = data.shape[1]
 
     #Compute the kernel
     if S is None:
         S = jnp.diag(jnp.array([1] * d),0)
+
+    #Compute the distance
     Sinvert = jnp.linalg.inv(S)
-    D = jax.vmap(jax.vmap(lambda x,y: jnp.dot(x,y)))(jnp.matmul(x[None,:] - x[:,None],Sinvert),x[None,:] - x[:,None])
+    D = jax.vmap(jax.vmap(lambda x,y: jnp.dot(x,y)))(jnp.matmul(data[None,:] - data[:,None],Sinvert),data[None,:] - data[:,None])
 
     return jnp.sqrt(D)
 
-#Mahalanobis distance to a center
+#Mahalanobis distance to a point
 @jit
-def mahalanobis(x,center,S = None):
-    #Assure data is matrix
-    x = jnp.array(x)
+def mahalanobis(data,point,S = None):
+    """
+    Mahalanobis distance to a point
+    -------
+    Parameters
+    ----------
+    data : jax.numpy.array
 
+        Data
+
+    point : jax.numpy.array
+
+        Point
+
+    S : jax.numpy.array
+
+        Covariance matrix
+
+    Returns
+    -------
+    jax.numpy.array
+    """
     #Sample size and number of variables
-    n = x.shape[0]
-    d = x.shape[1]
+    n = data.shape[0]
+    d = data.shape[1]
 
     #Compute the kernel
     if S is None:
         S = jnp.diag(jnp.array([1] * d),0)
     Sinvert = jnp.linalg.inv(S)
-    dist = lambda x: jnp.sqrt(jnp.matmul(jnp.matmul((x - center).reshape((1,d)),Sinvert),jnp.transpose((x - center).reshape((1,d)))))[0,0]
+
+    #Compute distance
+    dist = lambda x: jnp.sqrt(jnp.matmul(jnp.matmul((data - center).reshape((1,d)),Sinvert),jnp.transpose((data - center).reshape((1,d)))))[0,0]
     D = jax.vmap(dist)(x)
 
     return D
 
 #Sample from distance (delta(X)) distribution
-def sample_dist(x,sigma,S,mc_sample,key):
+def sample_mean_dist(data,sigma,S,mc_sample = 100,key = 0):
+    """
+    Sample from theoretical distance to sample distribution and compute mean minimum distance to data
+    -------
+    Parameters
+    ----------
+    data : jax.numpy.array
+
+        Data
+
+    sigma : float
+
+        Theoretical standard deviation
+
+    S : jax.numpy.array
+
+        Theoretical form of covariance matrix
+
+    point : jax.numpy.array
+
+        Point
+
+    mc_sample : int
+
+        Number of points for Monte Carlo integration
+
+    key : int
+
+        Seed for sampling
+
+    Returns
+    -------
+    jax.numpy.array
+    """
     #Sample size and number of variables
-    n = x.shape[0]
-    d = x.shape[1]
+    n = data.shape[0]
+    d = data.shape[1]
 
     #Generate keys
-    keys = jax.random.randint(key,(mc_sample + 1,),0,1e9)
+    keys = jax.random.split(jax.random.PRNGKey(key),mc_sample + 1)
 
     #Sample means (distribution of mixture that generated the point)
-    mean_index = jnp.array(jax.random.randint(random.PRNGKey(keys[0]),(mc_sample,),0,n),dtype = jnp.uint32)
+    mean_index = jnp.array(jax.random.randint(random.PRNGKey(keys[0,0]),(mc_sample,),0,n),dtype = jnp.uint32)
 
     #Sample points
-    sample = lambda i: jax.random.multivariate_normal(random.PRNGKey(keys[i + 1]), x[mean_index[i],:], sigma*S, shape = (1,)).reshape((1,d))
-    sample = jax.vmap(sample)(jnp.array(range(mc_sample)).reshape((mc_sample,))).reshape((mc_sample,d))
+    sample = lambda i: jax.random.multivariate_normal(random.PRNGKey(keys[i + 1]), data[mean_index[i],:], sigma*S, shape = (1,)).reshape((1,d))
+    sample = jax.vmap(sample)(jnp.arange(mc_sample)).reshape((mc_sample,)).reshape((mc_sample,d))
 
     #Compute distances
-    distance = lambda s: jnp.min(mahalanobis(x = x,center = s,S = S))
+    distance = lambda point: jnp.min(mahalanobis(x = data,center = point,S = S))
     distance = jax.vmap(distance)(sample)
 
     return jnp.mean(distance)
 
 #E-Step
 @jit
-def e_step(i,x,n,S,lamb):
-    W = jax.scipy.stats.multivariate_normal.pdf(x,x[i,:],S[i,:,:]).at[i].set(-lamb)
+def e_step(i,data,S,lamb):
+    """
+    E-step of EM algorithm for kernel estimation via the maximum pseudo-likelihood method
+    -------
+    Parameters
+    ----------
+    i : int
+
+        Data index
+
+    data : jax.numpy.array
+
+        Data
+
+    S : jax.numpy.array
+
+        Current covariance matrix
+
+    lamb : float
+
+        Lambda parameter
+
+    Returns
+    -------
+    jax.numpy.array
+    """
+    W = jax.scipy.stats.multivariate_normal.pdf(data,data[i,:],S[i,:,:]).at[i].set(-lamb)
     return W
 
 #M step
 @jit
-def m_step(i,x,W,n):
+def m_step(i,data,W):
+    """
+    M-step of EM algorithm for kernel estimation via the maximum pseudo-likelihood method
+    -------
+    Parameters
+    ----------
+    i : int
+
+        Data index
+
+    data : jax.numpy.array
+
+        Data
+
+    W : jax.numpy.array
+
+        Current weights
+
+    Returns
+    -------
+    jax.numpy.array
+    """
     Snext = jnp.matmul(W[i,:]*jnp.transpose(x[i,:] - x),x[i,:] - x)
     return Snext
 
 #Estimate the kernel
-def kernel_estimator(x,key,method = "chi",S = None,S0 = None,bias = None,psi = None,mc_sample = 100,ec = 1e-6,grid_delta = 0.001,lamb = 1,trace = False,loss = gb.quad_loss):
-    #Assure data is jax.Array
-    x = jnp.array(x)
+def kernel_estimator(data,method = "chi",S = None,S0 = None,bias = None,psi = None,mc_sample = 100,ec = 1e-6,grid_delta = 0.001,lamb = 1,trace = False,loss = gb.quad_loss,key = 0):
+    """
+    Estimate the kernel for Bolstering
+    -------
+    Parameters
+    ----------
+    data : jax.numpy.array
 
+        Data
+
+    method : str
+
+        Should be 'chi', 'mm', 'mpe' or 'hessian'
+
+    S : jax.numpy.array
+
+        Form of covariance matrix for estimation by the chi approximation method
+
+    S0 : jax.numpy.array
+
+        Initial covariance matrix for estimation by the maximum pseudo-likelihood method
+
+    bias : float
+
+        Expected bias of resubstitution estimator
+
+    psi : function
+
+        Estimated function for estimation via the Hessian method
+
+    mc_sample : int
+
+        Number of points for Monte Carlo integration
+
+    ec : float
+
+        Error criteria to stop EM algorithm
+
+    grid_delta : float
+
+        Size of grid for grid-search in the chi approximation method
+
+    lamb : float
+
+        Lambda parameter for estimation by the maximum pseudo-likelihood method
+
+    trace : logical
+
+        Whether to trace the algorithm
+
+    loss : function
+
+        Loss function
+
+    key : int
+
+        Seed for sampling
+
+    Returns
+    -------
+    jax.numpy.array
+    """
     #Sample size and number of variables
-    n = x.shape[0]
-    d = x.shape[1]
+    n = data.shape[0]
+    d = data.shape[1]
 
     #Compute the kernel via chi approximation
     if method == "chi":
@@ -105,7 +295,7 @@ def kernel_estimator(x,key,method = "chi",S = None,S0 = None,bias = None,psi = N
             S = jnp.diag(jnp.array([1] * d),0)
 
         #Compute delta_bar
-        delta_bar = jnp.mean(jnp.min(dist_mahalanobis(x,S) + jnp.diag(jnp.array([jnp.inf]*n),0),1))
+        delta_bar = jnp.mean(jnp.min(dist_mahalanobis(data,S) + jnp.diag(jnp.array([jnp.inf]*n),0),1))
 
         #Compute expectation of chi random variable
         dom = jnp.linspace(0,10*d,round(10*d/0.001))[1:]
@@ -122,19 +312,19 @@ def kernel_estimator(x,key,method = "chi",S = None,S0 = None,bias = None,psi = N
             S = jnp.diag(jnp.array([1] * d),0)
 
         #Compute delta_bar
-        delta_bar = jnp.mean(jnp.min(dist_mahalanobis(x,S) + jnp.diag(jnp.array([jnp.inf]*n),0),1))
+        delta_bar = jnp.mean(jnp.min(dist_mahalanobis(data,S) + jnp.diag(jnp.array([jnp.inf]*n),0),1))
 
         #Generate keys
-        keys = jax.random.randint(key,(100000 + 1,),0,1e9)
+        keys = jax.random.split(jax.random.PRNGKey(key),1e5)
 
         #Compute mean distance for each sigma in a grid
-        sd = jax.jit(lambda sigma,key: sample_dist(x,sigma,S,mc_sample,key))
+        sd = jax.jit(lambda sigma,key: sample_dist(data,sigma,S,mc_sample,key))
         r = 0
         mean_dist = []
         while (max(mean_dist + [0]) - delta_bar) < 0 and r < 1e5:
           r = r + 1
           sigma = r*grid_delta
-          mean_dist = mean_dist + [sd(sigma,random.PRNGKey(keys[r]))]
+          mean_dist = mean_dist + [sd(sigma,random.PRNGKey(keys[r,0]))]
         sigma = (r - 1)*grid_delta
 
         if r == 1e5:
@@ -156,11 +346,11 @@ def kernel_estimator(x,key,method = "chi",S = None,S0 = None,bias = None,psi = N
         t = 0
         while criteria:
             #E step
-            W = jax.vmap(lambda i: e_step(i,x,n,S,lamb))(jnp.array(range(n))) + lamb
+            W = jax.vmap(lambda i: e_step(i,data,S,lamb))(jnp.arange(n)) + lamb
             W = W/jnp.sum(W,axis = 0)
 
             #M step
-            Snext = jax.vmap(lambda i: m_step(i,x,W,n))(jnp.array(range(n)))/(n-1)
+            Snext = jax.vmap(lambda i: m_step(i,data,W))(jnp.arange(n))/(n-1)
 
             #Dif
             dif = jnp.max(S - Snext)
@@ -178,12 +368,12 @@ def kernel_estimator(x,key,method = "chi",S = None,S0 = None,bias = None,psi = N
             return loss(psi(xy[:,0:-1]),xy[:,-1])
 
         #Hessian
-        H = jax.vmap(lambda x: jax.hessian(lf)(x.reshape((1,x.shape[0]))))(x).reshape((x.shape[0],x.shape[1],x.shape[1]))
+        H = jax.vmap(lambda x: jax.hessian(lf)(data.reshape((1,data.shape[0]))))(data).reshape((data.shape[0],data.shape[1],data.shape[1]))
 
         #Compute kernel
-        S = 2 * bias * 1/H * (1/(x.shape[1] ** 2))
+        S = 2 * bias * 1/H * (1/(data.shape[1] ** 2))
 
         #Nearest pd
         S = jax.vmap(nearest_pd)(S)
 
-        return S
+        return jnp.tile(S,(n,1,1))
