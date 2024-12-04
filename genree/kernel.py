@@ -103,8 +103,8 @@ def mahalanobis(data,point,S = None):
     Sinvert = jnp.linalg.inv(S)
 
     #Compute distance
-    dist = lambda x: jnp.sqrt(jnp.matmul(jnp.matmul((data - center).reshape((1,d)),Sinvert),jnp.transpose((data - center).reshape((1,d)))))[0,0]
-    D = jax.vmap(dist)(x)
+    dist = lambda x: jnp.sqrt(jnp.matmul(jnp.matmul((x - point).reshape((1,d)),Sinvert),jnp.transpose((x - point).reshape((1,d)))))[0,0]
+    D = jax.vmap(dist)(data)
 
     return D
 
@@ -154,11 +154,11 @@ def sample_mean_dist(data,sigma,S,mc_sample = 100,key = 0):
     mean_index = jnp.array(jax.random.randint(random.PRNGKey(keys[0,0]),(mc_sample,),0,n),dtype = jnp.uint32)
 
     #Sample points
-    sample = lambda i: jax.random.multivariate_normal(random.PRNGKey(keys[i + 1]), data[mean_index[i],:], sigma*S, shape = (1,)).reshape((1,d))
-    sample = jax.vmap(sample)(jnp.arange(mc_sample)).reshape((mc_sample,)).reshape((mc_sample,d))
+    sample = lambda i: jax.random.multivariate_normal(random.PRNGKey(keys[i + 1,0]), data[mean_index[i],:], sigma*S, shape = (1,)).reshape((1,d))
+    sample = jax.vmap(sample)(jnp.arange(mc_sample).reshape((mc_sample,))).reshape((mc_sample,d))
 
     #Compute distances
-    distance = lambda point: jnp.min(mahalanobis(x = data,center = point,S = S))
+    distance = lambda point: jnp.min(mahalanobis(data = data,point = point,S = S))
     distance = jax.vmap(distance)(sample)
 
     return jnp.mean(distance)
@@ -218,11 +218,11 @@ def m_step(i,data,W):
     -------
     jax.numpy.array
     """
-    Snext = jnp.matmul(W[i,:]*jnp.transpose(x[i,:] - x),x[i,:] - x)
+    Snext = jnp.matmul(W[i,:]*jnp.transpose(data[i,:] - data),data[i,:] - data)
     return Snext
 
 #Estimate the kernel
-def kernel_estimator(data,method = "chi",S = None,S0 = None,bias = None,psi = None,mc_sample = 100,ec = 1e-6,grid_delta = 0.001,lamb = 1,trace = False,loss = gb.quad_loss,key = 0):
+def kernel_estimator(data,method = "chi",S = None,S0 = None,bias = None,psi = None,mc_sample = 10000,ec = 1e-6,grid_delta = 0.01,lamb = 1,trace = False,loss = gb.quad_loss,key = 0):
     """
     Estimate the kernel for Bolstering
     -------
@@ -315,16 +315,18 @@ def kernel_estimator(data,method = "chi",S = None,S0 = None,bias = None,psi = No
         delta_bar = jnp.mean(jnp.min(dist_mahalanobis(data,S) + jnp.diag(jnp.array([jnp.inf]*n),0),1))
 
         #Generate keys
-        keys = jax.random.split(jax.random.PRNGKey(key),1e5)
+        keys = jax.random.split(jax.random.PRNGKey(key),100010)
 
         #Compute mean distance for each sigma in a grid
-        sd = jax.jit(lambda sigma,key: sample_dist(data,sigma,S,mc_sample,key))
+        sd = jax.jit(lambda sigma,key: sample_mean_dist(data,sigma,S,mc_sample,key))
         r = 0
         mean_dist = []
         while (max(mean_dist + [0]) - delta_bar) < 0 and r < 1e5:
           r = r + 1
           sigma = r*grid_delta
-          mean_dist = mean_dist + [sd(sigma,random.PRNGKey(keys[r,0]))]
+          mean_dist = mean_dist + [sd(sigma,keys[r,0])]
+          if trace:
+              print('Sigma: ' + str(sigma) + ' Mean distance: ' + str(round(mean_dist[-1],2)) + ' Observed distance: ' + str(round(delta_bar,2)))
         sigma = (r - 1)*grid_delta
 
         if r == 1e5:
@@ -368,7 +370,7 @@ def kernel_estimator(data,method = "chi",S = None,S0 = None,bias = None,psi = No
             return loss(psi(xy[:,0:-1]),xy[:,-1])
 
         #Hessian
-        H = jax.vmap(lambda x: jax.hessian(lf)(data.reshape((1,data.shape[0]))))(data).reshape((data.shape[0],data.shape[1],data.shape[1]))
+        H = jax.vmap(lambda x: jax.hessian(lf)(x.reshape((1,x.shape[0]))))(data).reshape((data.shape[0],data.shape[1],data.shape[1]))
 
         #Compute kernel
         S = 2 * bias * 1/H * (1/(data.shape[1] ** 2))

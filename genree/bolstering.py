@@ -136,7 +136,7 @@ def bolstering(psi,x,y,k,mc_sample = 100,key = 0,loss = quad_loss):
     keys = jax.random.split(jax.random.PRNGKey(key),mc_sample)
 
     #Calculate the bolstered loss for each sample point
-    bi = lambda i: bolstering_loss(psi,k[i,:,:],x[i,:],y[i,:],mc_sample,random.PRNGKey(keys[i,0]),loss)
+    bi = lambda i: bolstering_loss(psi,x[i,:],y[i,:],k[i,:,:],mc_sample,random.PRNGKey(keys[i,0]),loss)
     bolst = jax.vmap(bi)(jnp.array(range(n)).reshape((n,)))
 
     return jnp.mean(bolst)
