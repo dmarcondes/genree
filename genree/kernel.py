@@ -7,7 +7,7 @@ from jax.scipy.linalg import eigh
 from genree import bolstering as gb
 
 #Approximate by a posiitve definite matrix
-def nearest_pd(A,e = 1e-8):
+def nearest_pd(A,e = 1e-2):
     """
     Approximate by a positive definite matrix
     -------
@@ -378,4 +378,4 @@ def kernel_estimator(data,method = "chi",S = None,S0 = None,bias = None,psi = No
         #Nearest pd
         S = jax.vmap(nearest_pd)(S)
 
-        return jnp.tile(S,(n,1,1))
+        return S

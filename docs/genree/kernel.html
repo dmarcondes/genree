@@ -81,7 +81,7 @@
 </span><span id="L-7"><a href="#L-7"><span class="linenos">  7</span></a><span class="kn">from</span> <span class="nn">genree</span> <span class="kn">import</span> <span class="n">bolstering</span> <span class="k">as</span> <span class="n">gb</span>
 </span><span id="L-8"><a href="#L-8"><span class="linenos">  8</span></a>
 </span><span id="L-9"><a href="#L-9"><span class="linenos">  9</span></a><span class="c1">#Approximate by a posiitve definite matrix</span>
-</span><span id="L-10"><a href="#L-10"><span class="linenos"> 10</span></a><span class="k">def</span> <span class="nf">nearest_pd</span><span class="p">(</span><span class="n">A</span><span class="p">,</span><span class="n">e</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">):</span>
+</span><span id="L-10"><a href="#L-10"><span class="linenos"> 10</span></a><span class="k">def</span> <span class="nf">nearest_pd</span><span class="p">(</span><span class="n">A</span><span class="p">,</span><span class="n">e</span> <span class="o">=</span> <span class="mf">1e-2</span><span class="p">):</span>
 </span><span id="L-11"><a href="#L-11"><span class="linenos"> 11</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span id="L-12"><a href="#L-12"><span class="linenos"> 12</span></a><span class="sd">    Approximate by a positive definite matrix</span>
 </span><span id="L-13"><a href="#L-13"><span class="linenos"> 13</span></a><span class="sd">    -------</span>
@@ -452,7 +452,7 @@
 </span><span id="L-378"><a href="#L-378"><span class="linenos">378</span></a>        <span class="c1">#Nearest pd</span>
 </span><span id="L-379"><a href="#L-379"><span class="linenos">379</span></a>        <span class="n">S</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">nearest_pd</span><span class="p">)(</span><span class="n">S</span><span class="p">)</span>
 </span><span id="L-380"><a href="#L-380"><span class="linenos">380</span></a>
-</span><span id="L-381"><a href="#L-381"><span class="linenos">381</span></a>        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">S</span><span class="p">,(</span><span class="n">n</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+</span><span id="L-381"><a href="#L-381"><span class="linenos">381</span></a>        <span class="k">return</span> <span class="n">S</span>
 </span></pre></div>
 
 
@@ -462,13 +462,13 @@
 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">nearest_pd</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">A</span>, </span><span class="param"><span class="n">e</span><span class="o">=</span><span class="mf">1e-08</span></span><span class="return-annotation">):</span></span>
+        <span class="name">nearest_pd</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">A</span>, </span><span class="param"><span class="n">e</span><span class="o">=</span><span class="mf">0.01</span></span><span class="return-annotation">):</span></span>
 
                 <label class="view-source-button" for="nearest_pd-view-source"><span>View Source</span></label>
 
     </div>
     <a class="headerlink" href="#nearest_pd"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="nearest_pd-11"><a href="#nearest_pd-11"><span class="linenos">11</span></a><span class="k">def</span> <span class="nf">nearest_pd</span><span class="p">(</span><span class="n">A</span><span class="p">,</span><span class="n">e</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">):</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="nearest_pd-11"><a href="#nearest_pd-11"><span class="linenos">11</span></a><span class="k">def</span> <span class="nf">nearest_pd</span><span class="p">(</span><span class="n">A</span><span class="p">,</span><span class="n">e</span> <span class="o">=</span> <span class="mf">1e-2</span><span class="p">):</span>
 </span><span id="nearest_pd-12"><a href="#nearest_pd-12"><span class="linenos">12</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span id="nearest_pd-13"><a href="#nearest_pd-13"><span class="linenos">13</span></a><span class="sd">    Approximate by a positive definite matrix</span>
 </span><span id="nearest_pd-14"><a href="#nearest_pd-14"><span class="linenos">14</span></a><span class="sd">    -------</span>
@@ -1080,7 +1080,7 @@
 </span><span id="kernel_estimator-379"><a href="#kernel_estimator-379"><span class="linenos">379</span></a>        <span class="c1">#Nearest pd</span>
 </span><span id="kernel_estimator-380"><a href="#kernel_estimator-380"><span class="linenos">380</span></a>        <span class="n">S</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">nearest_pd</span><span class="p">)(</span><span class="n">S</span><span class="p">)</span>
 </span><span id="kernel_estimator-381"><a href="#kernel_estimator-381"><span class="linenos">381</span></a>
-</span><span id="kernel_estimator-382"><a href="#kernel_estimator-382"><span class="linenos">382</span></a>        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">S</span><span class="p">,(</span><span class="n">n</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+</span><span id="kernel_estimator-382"><a href="#kernel_estimator-382"><span class="linenos">382</span></a>        <span class="k">return</span> <span class="n">S</span>
 </span></pre></div>
 
 
