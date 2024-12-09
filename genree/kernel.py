@@ -7,7 +7,7 @@ from jax.scipy.linalg import eigh
 from genree import bolstering as gb
 
 #Approximate by a posiitve definite matrix
-def nearest_pd(A,e = 1e-2):
+def nearest_pd(A,e = 1e-4):
     """
     Approximate by a positive definite matrix
     -------
